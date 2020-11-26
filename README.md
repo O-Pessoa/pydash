@@ -24,5 +24,3 @@ pip3 install numpy matplotlib scipy seaborn
 ```
 git clone https://github.com/mfcaetano/pydash.git
 ```
-
-
