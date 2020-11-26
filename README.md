@@ -1,15 +1,8 @@
 # Trabalho UnB
-```
-    Implementação do algoritimo abr
-```
+Implementação do algoritimo abr
 # Alunos
 Alunos:
-
-    Pedro Pessoa Ramos - 18/0026488
-    
-    Matheus Arruda Aguiar - 18/0127659
-    
-    Keydson Estrela da Silva - 18/0021320
+Pedro Pessoa Ramos - 18/0026488 </br> Matheus Arruda Aguiar - 18/0127659 </br> Keydson Estrela da Silva - 18/0021320
 
 ## Pré-requisitos
 
