@@ -2,7 +2,7 @@
 ```
     Implementação do algoritimo abr
 ```
-# Aluno
+# Alunos
 Alunos:
 
     Pedro Pessoa Ramos - 18/0026488
