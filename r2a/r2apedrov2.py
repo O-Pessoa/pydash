@@ -27,9 +27,13 @@ class R2APedroV2(IR2A):
         self.bpsHistory = []
         self.QiHistory = []
         self.windowSize = 10
+        self.windowSizeQi = 5
         self.minDownload = 0
         self.avgDownload = 0
         self.maxDownload = 0
+
+        self.bufferSizeLimitsPct = [70,60,40,30]
+        self.maximumRisePercentageQi = 5
 
     def handle_xml_request(self, msg):
         self.send_down(msg)
@@ -50,7 +54,7 @@ class R2APedroV2(IR2A):
         currentBps = msg.get_bit_length()/(time()-self.lastRequestTime) # Velocidade Atual
         self.bpsHistory.append(currentBps) # Historico de velocidade
         
-        analyzedWindow = self.bpsHistory[len(self.bpsHistory)-self.windowSize:] # Janela de velocidades que será analisada
+        analyzedWindow = self.bpsHistory[-self.windowSize:] # Janela de velocidades que será analisada
         self.minDownload = min(analyzedWindow) # Menor valor da janela analisada
         self.avgDownload = sum(analyzedWindow)/len(analyzedWindow) # Valor medio da janela analisada
         self.maxDownload = max(analyzedWindow) # Valor maximo da janela analisada
@@ -77,25 +81,32 @@ class R2APedroV2(IR2A):
     def setQI(self):
         temp = self.whiteboard.get_playback_buffer_size()[-1:] # Variavel temporaria utilizada para transformar o array em float
         currentBufferSize = temp[0][1] if len(temp) != 0 else 0 # Tamanho atual do buffer
+        pctBufferSize = (currentBufferSize/self.maxBufferSize)*100 # Tamanho do buffer atual em procentagem do tamanho maximo
+        
+        if pctBufferSize >= self.bufferSizeLimitsPct[0]:
+            referenceValue = self.maxDownload
 
-        
-        
-        
-        
-        ValorReferencia = self.avgDownload*(currentBufferSize/(self.maxBufferSize))
+        elif pctBufferSize >= self.bufferSizeLimitsPct[1]:
+            referenceValue = (self.avgDownload+self.maxDownload)/2
 
-        QiRetornado = self.getIndiceQiMenorMaisProximo(ValorReferencia)
+        elif pctBufferSize >= self.bufferSizeLimitsPct[2]:
+            referenceValue = self.avgDownload
+
+        elif pctBufferSize >= self.bufferSizeLimitsPct[3]:
+            referenceValue = (self.avgDownload+self.minDownload)/2
+    
+        else:
+            referenceValue = self.minDownload
+        
+
+        QiRetornado = self.getIndiceQiMenorMaisProximo(referenceValue)
         self.QiHistory.append(QiRetornado)
 
-        strRewriteLog = 'Ultimo Bps: '+str(self.bpsHistory[-1:])+'\n'
-        strRewriteLog += 'Buffer atual: '+str(currentBufferSize)+'\n'
-        strRewriteLog += 'Download min: '+str(self.minDownload)+'\n'
-        strRewriteLog += 'Download avg: '+str(self.avgDownload)+'\n'
-        strRewriteLog += 'Download max: '+str(self.maxDownload)+'\n'
-        strRewriteLog += 'Qi Retonado: '+str(self.qi[QiRetornado])+'\n'
-        strRewriteLog += 'Qi Retonado: '+str(QiRetornado)+'\n'
-        self.rewriteLog(strRewriteLog)
-        #QiRetornado = int(sum(self.QiHistory[-4:]+[QiRetornado])/5)
+        analyzedWindow = self.QiHistory[-self.windowSizeQi:]
+        avgAnalyzedWindow = int(sum(analyzedWindow)/len(analyzedWindow))
+        if QiRetornado > avgAnalyzedWindow and abs(QiRetornado - avgAnalyzedWindow) > avgAnalyzedWindow*(1+(self.maximumRisePercentageQi/100)):
+            QiRetornado = avgAnalyzedWindow
+
         return QiRetornado
 
     def carregarParametros(self):
