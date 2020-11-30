@@ -91,6 +91,8 @@ class R2APedroV2(IR2A):
         
         self.setNetworkReliability(currentBufferSize)
 
+        # Define os valores possiveis para a velocidade de referencia de acorco com o tamanho do Buffer
+
         if pctBufferSize >= self.bufferSizeLimitsPct[0]/(self.networkReliability/100):
             referenceValue = self.maxDownload
 
@@ -109,33 +111,40 @@ class R2APedroV2(IR2A):
 
         QiRetornado = self.getIndiceQiMenorMaisProximo(referenceValue)
         
-        analyzedWindow = self.QiHistory[-self.windowSizeQi:]
-        avgAnalyzedWindow = int(sum(analyzedWindow+[QiRetornado])/(len(analyzedWindow)+1))
+        analyzedWindow = self.QiHistory[-self.windowSizeQi:] # Janela de analise do historico dos Qi retornados
+        avgAnalyzedWindow = int(sum(analyzedWindow+[QiRetornado])/(len(analyzedWindow)+1)) # Media dos valores da janela analisada
         if QiRetornado > avgAnalyzedWindow and abs(QiRetornado - avgAnalyzedWindow) > avgAnalyzedWindow*(1+(self.maximumRisePercentageQi/100)):
+            # Caso o Qi que iria se retornado for muito maior que a media anterior ele será retornado como o valor limite da taxa de subida de Qi
+            # Esse if serve para evitar grandes subidas no Qi repentinamente
             QiRetornado = int(avgAnalyzedWindow*(1+(self.maximumRisePercentageQi/100)))
 
-        self.QiHistory.append(QiRetornado)
+        self.QiHistory.append(QiRetornado) # Historico de Indices retornados
         self.lastRequestTime = time()
         return QiRetornado
 
-    def setNetworkReliability(self, currentBufferSize):
+    def setNetworkReliability(self, currentBufferSize): # Define a confiabilidade da rede
         if self.lastRequestTime != 0:
             deltaTime = time()-self.lastRequestTime
 
-            if self.lastDecreaseNetworkReliability != 0:
-                if time() - self.lastDecreaseNetworkReliability >= self.timeReturnNetworkReliability:
-                    self.networkReliability += 5
-                    if self.networkReliability > 100:
-                        self.networkReliability = 100
-                        self.lastDecreaseNetworkReliability = 0
-
-            if deltaTime > self.networkReliabilityLimit:
+            if deltaTime > self.networkReliabilityLimit: # Diminuir a confiabilidade da rede caso tenha um tempo muito grande sem receber pacotes
                 self.lastDecreaseNetworkReliability = time()
+                self.windowSize = int(self.initWindowSize/1.4)
                 self.networkReliability -=  deltaTime*self.timeVariationMultiplier
                 if self.networkReliability < 1:
                     self.networkReliability = 1
 
+            if self.lastDecreaseNetworkReliability != 0: # Voltar a confiabilidade da rede depois de um determinado tempo sem cair
+                if time() - self.lastDecreaseNetworkReliability >= self.timeReturnNetworkReliability:
+                    self.networkReliability += 5
+                    self.windowSize = self.initWindowSize
+                    if self.networkReliability > 100:
+                        self.networkReliability = 100
+                        self.lastDecreaseNetworkReliability = 0
+
+
     def carregarParametros(self):
+        # Carrega o self.maxBufferSize do json
+        
         with open('dash_client.json') as f:
             dados = json.load(f)
             self.maxBufferSize = dados['max_buffer_size']
