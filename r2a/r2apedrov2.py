@@ -27,7 +27,8 @@ class R2APedroV2(IR2A):
         self.lastDecreaseNetworkReliability = 0
         self.bpsHistory = []
         self.QiHistory = []
-        self.windowSize = 10
+        self.initWindowSize = 10
+        self.windowSize = self.initWindowSize
         self.windowSizeQi = 5
         self.minDownload = 0
         self.avgDownload = 0
@@ -37,7 +38,7 @@ class R2APedroV2(IR2A):
         self.timeVariationMultiplier = 1
 
         self.bufferSizeLimitsPct = [70,60,40,30]
-        self.maximumRisePercentageQi = 5
+        self.maximumRisePercentageQi = 2
         self.networkReliabilityLimit = 5
 
 
@@ -107,13 +108,13 @@ class R2APedroV2(IR2A):
         
 
         QiRetornado = self.getIndiceQiMenorMaisProximo(referenceValue)
-        self.QiHistory.append(QiRetornado)
-
+        
         analyzedWindow = self.QiHistory[-self.windowSizeQi:]
-        avgAnalyzedWindow = int(sum(analyzedWindow)/len(analyzedWindow))
+        avgAnalyzedWindow = int(sum(analyzedWindow+[QiRetornado])/(len(analyzedWindow)+1))
         if QiRetornado > avgAnalyzedWindow and abs(QiRetornado - avgAnalyzedWindow) > avgAnalyzedWindow*(1+(self.maximumRisePercentageQi/100)):
-            QiRetornado = avgAnalyzedWindow
+            QiRetornado = int(avgAnalyzedWindow*(1+(self.maximumRisePercentageQi/100)))
 
+        self.QiHistory.append(QiRetornado)
         self.lastRequestTime = time()
         return QiRetornado
 
