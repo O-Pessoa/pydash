@@ -24,6 +24,7 @@ class R2APedroV2(IR2A):
         self.maxBufferSize = 0
 
         self.lastRequestTime = 0
+        self.lastDecreaseNetworkReliability = 0
         self.bpsHistory = []
         self.QiHistory = []
         self.windowSize = 10
@@ -31,9 +32,14 @@ class R2APedroV2(IR2A):
         self.minDownload = 0
         self.avgDownload = 0
         self.maxDownload = 0
+        self.networkReliability = 100
+        self.timeReturnNetworkReliability = 10
+        self.timeVariationMultiplier = 1
 
         self.bufferSizeLimitsPct = [70,60,40,30]
         self.maximumRisePercentageQi = 5
+        self.networkReliabilityLimit = 5
+
 
     def handle_xml_request(self, msg):
         self.send_down(msg)
@@ -46,7 +52,6 @@ class R2APedroV2(IR2A):
         self.send_up(msg)
 
     def handle_segment_size_request(self, msg):
-        self.lastRequestTime = time()
         msg.add_quality_id(self.qi[self.setQI()])
         self.send_down(msg)
 
@@ -83,16 +88,18 @@ class R2APedroV2(IR2A):
         currentBufferSize = temp[0][1] if len(temp) != 0 else 0 # Tamanho atual do buffer
         pctBufferSize = (currentBufferSize/self.maxBufferSize)*100 # Tamanho do buffer atual em procentagem do tamanho maximo
         
-        if pctBufferSize >= self.bufferSizeLimitsPct[0]:
+        self.setNetworkReliability(currentBufferSize)
+
+        if pctBufferSize >= self.bufferSizeLimitsPct[0]/(self.networkReliability/100):
             referenceValue = self.maxDownload
 
-        elif pctBufferSize >= self.bufferSizeLimitsPct[1]:
+        elif pctBufferSize >= self.bufferSizeLimitsPct[1]/(self.networkReliability/100):
             referenceValue = (self.avgDownload+self.maxDownload)/2
 
-        elif pctBufferSize >= self.bufferSizeLimitsPct[2]:
+        elif pctBufferSize >= self.bufferSizeLimitsPct[2]/(self.networkReliability/100):
             referenceValue = self.avgDownload
 
-        elif pctBufferSize >= self.bufferSizeLimitsPct[3]:
+        elif pctBufferSize >= self.bufferSizeLimitsPct[3]/(self.networkReliability/100):
             referenceValue = (self.avgDownload+self.minDownload)/2
     
         else:
@@ -107,7 +114,25 @@ class R2APedroV2(IR2A):
         if QiRetornado > avgAnalyzedWindow and abs(QiRetornado - avgAnalyzedWindow) > avgAnalyzedWindow*(1+(self.maximumRisePercentageQi/100)):
             QiRetornado = avgAnalyzedWindow
 
+        self.lastRequestTime = time()
         return QiRetornado
+
+    def setNetworkReliability(self, currentBufferSize):
+        if self.lastRequestTime != 0:
+            deltaTime = time()-self.lastRequestTime
+
+            if self.lastDecreaseNetworkReliability != 0:
+                if time() - self.lastDecreaseNetworkReliability >= self.timeReturnNetworkReliability:
+                    self.networkReliability += 5
+                    if self.networkReliability > 100:
+                        self.networkReliability = 100
+                        self.lastDecreaseNetworkReliability = 0
+
+            if deltaTime > self.networkReliabilityLimit:
+                self.lastDecreaseNetworkReliability = time()
+                self.networkReliability -=  deltaTime*self.timeVariationMultiplier
+                if self.networkReliability < 1:
+                    self.networkReliability = 1
 
     def carregarParametros(self):
         with open('dash_client.json') as f:
