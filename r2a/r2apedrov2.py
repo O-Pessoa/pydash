@@ -117,7 +117,7 @@ class R2APedroV2(IR2A):
         avgAnalyzedWindow = int(sum(analyzedWindow+[QiRetornado])/(len(analyzedWindow)+1)) # Media dos valores da janela analisada
         if QiRetornado > avgAnalyzedWindow*(1+(self.maximumRisePercentageQi/100)):
             # Esse if serve para evitar grandes subidas no Qi repentinamente
-            QiRetornado = int(avgAnalyzedWindow*(1+(self.maximumRisePercentageQi/100)))
+            QiRetornado = round(avgAnalyzedWindow*(1+(self.maximumRisePercentageQi/100)))
 
         self.QiHistory.append(QiRetornado) # Historico de Indices retornados
         self.lastRequestTime = time()
