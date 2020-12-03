@@ -39,7 +39,7 @@ class R2APedroV2(IR2A):
         self.timeVariationMultiplier = 1
 
         self.bufferSizeLimitsPct = [70,60,40,30]
-        self.maximumRisePercentageQi = 2
+        self.maximumRisePercentageQi = 5
         self.networkReliabilityLimit = 5
 
 
@@ -88,12 +88,12 @@ class R2APedroV2(IR2A):
     def setQI(self):
         temp = self.whiteboard.get_playback_buffer_size()[-1:] # Variavel temporaria utilizada para transformar o array em float
         currentBufferSize = temp[0][1] if len(temp) != 0 else 0 # Tamanho atual do buffer
-        pctBufferSize = (currentBufferSize/self.maxBufferSize)*100 # Tamanho do buffer atual em procentagem do tamanho maximo
         
         self.setNetworkReliability(currentBufferSize)
 
         # Define os valores possiveis para a velocidade de referencia de acorco com o tamanho do Buffer
-
+        '''
+        pctBufferSize = (currentBufferSize/self.maxBufferSize)*100 # Tamanho do buffer atual em procentagem do tamanho maximo
         if pctBufferSize >= self.bufferSizeLimitsPct[0]/(self.networkReliability/100):
             referenceValue = self.maxDownload
 
@@ -108,14 +108,14 @@ class R2APedroV2(IR2A):
     
         else:
             referenceValue = self.minDownload
-        
+        '''
+        referenceValue = self.avgDownload*currentBufferSize/((self.maxBufferSize*0.5)/(self.networkReliability/100))
 
         QiRetornado = self.getIndiceQiMenorMaisProximo(referenceValue)
         
         analyzedWindow = self.QiHistory[-self.windowSizeQi:] # Janela de analise do historico dos Qi retornados
         avgAnalyzedWindow = int(sum(analyzedWindow+[QiRetornado])/(len(analyzedWindow)+1)) # Media dos valores da janela analisada
-        if QiRetornado > avgAnalyzedWindow and abs(QiRetornado - avgAnalyzedWindow) > avgAnalyzedWindow*(1+(self.maximumRisePercentageQi/100)):
-            # Caso o Qi que iria se retornado for muito maior que a media anterior ele será retornado como o valor limite da taxa de subida de Qi
+        if QiRetornado > avgAnalyzedWindow*(1+(self.maximumRisePercentageQi/100)):
             # Esse if serve para evitar grandes subidas no Qi repentinamente
             QiRetornado = int(avgAnalyzedWindow*(1+(self.maximumRisePercentageQi/100)))
 
