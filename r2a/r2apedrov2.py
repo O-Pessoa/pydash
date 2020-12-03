@@ -8,6 +8,7 @@
 
 from time import time
 import json
+import numpy
 from player.parser import *
 from r2a.ir2a import IR2A
 
@@ -59,10 +60,10 @@ class R2APedroV2(IR2A):
     def handle_segment_size_response(self, msg):
         currentBps = msg.get_bit_length()/(time()-self.lastRequestTime) # Velocidade Atual
         self.bpsHistory.append(currentBps) # Historico de velocidade
-        
+        print(currentBps)
         analyzedWindow = self.bpsHistory[-self.windowSize:] # Janela de velocidades que será analisada
         self.minDownload = min(analyzedWindow) # Menor valor da janela analisada
-        self.avgDownload = sum(analyzedWindow)/len(analyzedWindow) # Valor medio da janela analisada
+        self.avgDownload = self.mediaGeometrica(analyzedWindow) # Valor medio da janela analisada
         self.maxDownload = max(analyzedWindow) # Valor maximo da janela analisada
 
         self.send_up(msg)
@@ -141,6 +142,8 @@ class R2APedroV2(IR2A):
                         self.networkReliability = 100
                         self.lastDecreaseNetworkReliability = 0
 
+    def mediaGeometrica(self,arr):
+        return pow(numpy.prod(arr),pow(len(arr),-1))
 
     def carregarParametros(self):
         # Carrega o self.maxBufferSize do json
