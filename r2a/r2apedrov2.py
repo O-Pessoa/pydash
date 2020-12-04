@@ -31,14 +31,11 @@ class R2APedroV2(IR2A):
         self.initWindowSize = 10
         self.windowSize = self.initWindowSize
         self.windowSizeQi = 5
-        self.minDownload = 0
         self.avgDownload = 0
-        self.maxDownload = 0
         self.networkReliability = 100
         self.timeReturnNetworkReliability = 10
         self.timeVariationMultiplier = 3
 
-        self.bufferSizeLimitsPct = [70,60,40,30]
         self.maximumRisePercentageQi = 5
         self.networkReliabilityLimit = 5
 
@@ -62,9 +59,7 @@ class R2APedroV2(IR2A):
         self.bpsHistory.append(currentBps) # Historico de velocidade
         print(currentBps)
         analyzedWindow = self.bpsHistory[-self.windowSize:] # Janela de velocidades que será analisada
-        self.minDownload = min(analyzedWindow) # Menor valor da janela analisada
         self.avgDownload = self.mediaGeometrica(analyzedWindow) # Valor medio da janela analisada
-        self.maxDownload = max(analyzedWindow) # Valor maximo da janela analisada
 
         self.send_up(msg)
 
@@ -91,24 +86,6 @@ class R2APedroV2(IR2A):
         
         self.setNetworkReliability(currentBufferSize)
 
-        # Define os valores possiveis para a velocidade de referencia de acorco com o tamanho do Buffer
-        '''
-        pctBufferSize = (currentBufferSize/self.maxBufferSize)*100 # Tamanho do buffer atual em procentagem do tamanho maximo
-        if pctBufferSize >= self.bufferSizeLimitsPct[0]/(self.networkReliability/100):
-            referenceValue = self.maxDownload
-
-        elif pctBufferSize >= self.bufferSizeLimitsPct[1]/(self.networkReliability/100):
-            referenceValue = (self.avgDownload+self.maxDownload)/2
-
-        elif pctBufferSize >= self.bufferSizeLimitsPct[2]/(self.networkReliability/100):
-            referenceValue = self.avgDownload
-
-        elif pctBufferSize >= self.bufferSizeLimitsPct[3]/(self.networkReliability/100):
-            referenceValue = (self.avgDownload+self.minDownload)/2
-    
-        else:
-            referenceValue = self.minDownload
-        '''
         referenceValue = self.avgDownload*currentBufferSize/((self.maxBufferSize*0.5)/(self.networkReliability/100))
 
         QiRetornado = self.getIndiceQiMenorMaisProximo(referenceValue)
