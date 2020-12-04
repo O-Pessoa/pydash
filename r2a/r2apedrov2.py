@@ -33,7 +33,7 @@ class R2APedroV2(IR2A):
         self.windowSizeQi = 5
         self.avgDownload = 0
         self.networkReliability = 100
-        self.timeReturnNetworkReliability = 10
+        self.timeReturnNetworkReliability = 5
         self.timeVariationMultiplier = 3
 
         self.maximumRisePercentageQi = 5
@@ -112,8 +112,8 @@ class R2APedroV2(IR2A):
                     self.networkReliability = 1
 
             if self.lastDecreaseNetworkReliability != 0: # Voltar a confiabilidade da rede depois de um determinado tempo sem cair
-                if time() - self.lastDecreaseNetworkReliability >= self.timeReturnNetworkReliability:
-                    self.networkReliability += 5
+                if time() - self.lastDecreaseNetworkReliability >= self.timeReturnNetworkReliability or currentBufferSize/self.maxBufferSize > 0.9:
+                    self.networkReliability += 10
                     self.windowSize = self.initWindowSize
                     if self.networkReliability > 100:
                         self.networkReliability = 100
