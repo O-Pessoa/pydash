@@ -36,7 +36,7 @@ class R2APedroV2(IR2A):
         self.maxDownload = 0
         self.networkReliability = 100
         self.timeReturnNetworkReliability = 10
-        self.timeVariationMultiplier = 1
+        self.timeVariationMultiplier = 3
 
         self.bufferSizeLimitsPct = [70,60,40,30]
         self.maximumRisePercentageQi = 5
