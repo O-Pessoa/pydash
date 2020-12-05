@@ -31,10 +31,12 @@ class R2APedroV2(IR2A):
         self.initWindowSize = 10
         self.windowSize = self.initWindowSize
         self.windowSizeQi = 5
+        self.maxDownload = 0
         self.avgDownload = 0
+        self.minDownload = 0
         self.networkReliability = 100
         self.timeReturnNetworkReliability = 5
-        self.timeVariationMultiplier = 3
+        self.timeVariationMultiplier = 1
 
         self.maximumRisePercentageQi = 5
         self.networkReliabilityLimit = 5
@@ -57,9 +59,10 @@ class R2APedroV2(IR2A):
     def handle_segment_size_response(self, msg):
         currentBps = msg.get_bit_length()/(time()-self.lastRequestTime) # Velocidade Atual
         self.bpsHistory.append(currentBps) # Historico de velocidade
-        print(currentBps)
         analyzedWindow = self.bpsHistory[-self.windowSize:] # Janela de velocidades que será analisada
+        self.maxDownload = max(self.bpsHistory) # Valor medio da janela analisada
         self.avgDownload = self.mediaGeometrica(analyzedWindow) # Valor medio da janela analisada
+        self.minDownload = min(self.bpsHistory[-self.windowSize*6:]) # Valor medio da janela analisada
 
         self.send_up(msg)
 
@@ -83,22 +86,38 @@ class R2APedroV2(IR2A):
     def setQI(self):
         temp = self.whiteboard.get_playback_buffer_size()[-1:] # Variavel temporaria utilizada para transformar o array em float
         currentBufferSize = temp[0][1] if len(temp) != 0 else 0 # Tamanho atual do buffer
-        
+
         self.setNetworkReliability(currentBufferSize)
 
-        referenceValue = self.avgDownload*currentBufferSize/((self.maxBufferSize*0.5)/(self.networkReliability/100))
+        string = 'Buffer seguro:'+str(self.secureBuffer(self.getIndiceQiMenorMaisProximo(self.maxDownload)))+'\n'
+        string += str(self.maxDownload)+'\n'
+        string += str(self.minDownload)
+        self.rewriteLog(string)
 
-        QiRetornado = self.getIndiceQiMenorMaisProximo(referenceValue)
+        referenceValue = self.avgDownload*currentBufferSize/(self.secureBuffer(self.getIndiceQiMenorMaisProximo(self.avgDownload))/(self.networkReliability/100))
+
+        QiRetornado = self.reduzirSubida(self.getIndiceQiMenorMaisProximo(referenceValue))
         
-        analyzedWindow = self.QiHistory[-self.windowSizeQi:] # Janela de analise do historico dos Qi retornados
-        avgAnalyzedWindow = int(sum(analyzedWindow+[QiRetornado])/(len(analyzedWindow)+1)) # Media dos valores da janela analisada
-        if QiRetornado > avgAnalyzedWindow*(1+(self.maximumRisePercentageQi/100)):
-            # Esse if serve para evitar grandes subidas no Qi repentinamente
-            QiRetornado = round(avgAnalyzedWindow*(1+(self.maximumRisePercentageQi/100)))
-
-        self.QiHistory.append(QiRetornado) # Historico de Indices retornados
         self.lastRequestTime = time()
         return QiRetornado
+
+    def reduzirSubida(self, qi):
+        analyzedWindow = self.QiHistory[-self.windowSizeQi:] # Janela de analise do historico dos Qi retornados
+        avgAnalyzedWindow = int(sum(analyzedWindow+[qi])/(len(analyzedWindow)+1)) # Media dos valores da janela analisada
+        if qi > avgAnalyzedWindow*(1+(self.maximumRisePercentageQi/100)):
+            # Esse if serve para evitar grandes subidas no Qi repentinamente
+            qi = round(avgAnalyzedWindow*(1+(self.maximumRisePercentageQi/100)))
+        self.QiHistory.append(qi) # Historico de Indices retornados
+        return qi
+
+    def secureBuffer(self, qi):
+        if self.minDownload == 0:
+            return self.maxBufferSize
+        secureBuffer = self.qi[qi]/self.minDownload
+        if secureBuffer < self.maxBufferSize*0.3:
+            secureBuffer = self.maxBufferSize*0.3
+        
+        return secureBuffer
 
     def setNetworkReliability(self, currentBufferSize): # Define a confiabilidade da rede
         if self.lastRequestTime != 0:
