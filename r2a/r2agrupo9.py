@@ -13,7 +13,7 @@ from player.parser import *
 from r2a.ir2a import IR2A
 
 
-class R2APedroV2(IR2A):
+class R2AGrupo9(IR2A):
 
     def __init__(self, id):
         IR2A.__init__(self, id)
