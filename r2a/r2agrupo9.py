@@ -1,8 +1,11 @@
 # -*- coding: utf-8 -*-
 """
-@author: Pedro Pessoa Ramos (180026488@aluno.unb.br) 22/11/2020
+update@author: Keydson Estrela da Silva, 18/0021320
+         Pedro Pessoa Ramos, 18/0026488
+         Matheus Arruda Aguiar, 18/0127659 
 
-@description: ABR V2.0
+@description: Para a implementação da nossa classe, utilizamos a média geométrica para obtermos a velocidade média da velocidade de download do 
+usuário, para que então fosse possível realizarmos os cálculos necessários para entregar a qualidade ideal e adequada à rede do usuário.
 
 """
 
@@ -60,9 +63,9 @@ class R2AGrupo9(IR2A):
         currentBps = msg.get_bit_length()/(time()-self.lastRequestTime) # Velocidade Atual
         self.bpsHistory.append(currentBps) # Historico de velocidade
         analyzedWindow = self.bpsHistory[-self.windowSize:] # Janela de velocidades que será analisada
-        self.maxDownload = max(self.bpsHistory) # Valor medio da janela analisada
+        self.maxDownload = max(self.bpsHistory) # Valor máximo da janela analisada
         self.avgDownload = self.mediaGeometrica(analyzedWindow) # Valor medio da janela analisada
-        self.minDownload = min(self.bpsHistory[-self.windowSize*6:]) # Valor medio da janela analisada
+        self.minDownload = min(self.bpsHistory[-self.windowSize*6:]) # Valor mínimo da janela analisada
 
         self.send_up(msg)
 
