@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-update@author: Keydson Estrela da Silva, 18/0021320
+@author: Keydson Estrela da Silva, 18/0021320
          Pedro Pessoa Ramos, 18/0026488
          Matheus Arruda Aguiar, 18/0127659 
 
